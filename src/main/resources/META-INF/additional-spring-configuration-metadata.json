@@ -1,6 +1,11 @@
 {
 	"properties": [
 		{
+			"name": "fine.enable",
+			"type": "boolean",
+			"description": "是否启用代理(true|false)"
+		},
+		{
 			"name": "fine.proxys",
 			"type": "java.util.List",
 			"description": "代理配置信息"

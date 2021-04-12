@@ -13,7 +13,16 @@ import org.springframework.boot.web.servlet.ServletContextInitializer;
 @ConfigurationProperties(prefix = "fine")
 public class FineProxyInitializer implements ServletContextInitializer {
 
+	private boolean enable = false; // 是否启动(默认否)
 	private List<FineProxyProp> proxys; // 代理路径
+
+	public boolean isEnable() {
+		return enable;
+	}
+
+	public void setEnable(boolean enable) {
+		this.enable = enable;
+	}
 
 	public List<FineProxyProp> getProxys() {
 		return proxys;
@@ -25,6 +34,9 @@ public class FineProxyInitializer implements ServletContextInitializer {
 
 	@Override
 	public void onStartup(ServletContext servletContext) throws ServletException {
+		if (!enable) {
+			return; // 未启用
+		}
 		if (proxys == null || proxys.isEmpty()) {
 			return;
 		}
