@@ -1,0 +1,23 @@
+{
+	"properties": [
+		{
+			"name": "fine.proxys",
+			"type": "java.util.List",
+			"description": "代理配置信息"
+		},
+		{
+			"name": "fine.proxys.default.servletUrl",
+			"type": "java.lang.String",
+			"description": "原始Url"
+		},
+		{
+			"name": "fine.proxys.default.targetUrl",
+			"type": "java.lang.String",
+			"description": "目标Url"
+		},
+		{
+			"name": "fine.proxys.default.enabledLog",
+			"type": "java.lang.Boolean"
+		}
+	]
+}
