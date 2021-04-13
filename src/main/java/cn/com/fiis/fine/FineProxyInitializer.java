@@ -44,11 +44,11 @@ public class FineProxyInitializer implements ServletContextInitializer {
 			if (prop == null) {
 				return;
 			}
-			if (prop.getServletUrl() == null || "".equals(prop.getServletUrl())) {
+			if (prop.getServletUrl() == null || prop.getServletUrl().trim().length() == 0) {
 				return;
 			}
 			ServletRegistration initServlet = servletContext.addServlet("Proxy-" + prop.getName(), ProxyServlet.class);
-			initServlet.addMapping(prop.getServletUrl());
+			initServlet.addMapping(prop.getServletUrl().split(","));
 			initServlet.setInitParameter(ProxyServlet.P_TARGET_URI, prop.getTargetUrl());
 			initServlet.setInitParameter(ProxyServlet.P_LOG, String.valueOf(prop.isEnabledLog()));
 		});
