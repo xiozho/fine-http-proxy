@@ -2,12 +2,22 @@
 	"properties": [
 		{
 			"name": "fine.enable",
-			"type": "boolean",
-			"description": "是否启用代理(true|false)"
+			"type": "java.lang.Boolean",
+			"sourceType": "cn.com.fiis.fine.FineProxyInitializer",
+			"defaultValue": false,
+			"description": "是否启用代理(true|false),默认false"
+		},
+		{
+			"name": "fine.enabled-log",
+			"type": "java.lang.Boolean",
+			"sourceType": "cn.com.fiis.fine.FineProxyInitializer",
+			"defaultValue": true,
+			"description": "是否输出代理日志(true|false),默认true"
 		},
 		{
 			"name": "fine.proxys",
 			"type": "java.util.List",
+			"sourceType": "cn.com.fiis.fine.FineProxyInitializer",
 			"description": "代理配置信息"
 		}
 	]

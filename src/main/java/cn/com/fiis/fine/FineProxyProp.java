@@ -5,11 +5,11 @@ public class FineProxyProp {
 	/** 名称 */
 	private String name;
 	/** 拦截路径 */
-	private String servletUrl;
+	private String path;
 	/** 目标路径 */
 	private String targetUrl;
-	/** 跟踪日志 */
-	private boolean enabledLog = false;
+	/** 截取前缀 */
+	private String truncatePrifix;
 
 	public String getName() {
 		return name;
@@ -19,12 +19,12 @@ public class FineProxyProp {
 		this.name = name;
 	}
 
-	public String getServletUrl() {
-		return servletUrl;
+	public String getPath() {
+		return path;
 	}
 
-	public void setServletUrl(String servletUrl) {
-		this.servletUrl = servletUrl;
+	public void setPath(String path) {
+		this.path = path;
 	}
 
 	public String getTargetUrl() {
@@ -35,12 +35,12 @@ public class FineProxyProp {
 		this.targetUrl = targetUrl;
 	}
 
-	public boolean isEnabledLog() {
-		return enabledLog;
+	public String getTruncatePrifix() {
+		return truncatePrifix;
 	}
 
-	public void setEnabledLog(boolean enabledLog) {
-		this.enabledLog = enabledLog;
+	public void setTruncatePrifix(String truncatePrifix) {
+		this.truncatePrifix = truncatePrifix;
 	}
 
 }
