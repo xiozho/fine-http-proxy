@@ -1,7 +1,7 @@
-package cn.com.fiis.fine;
+package cn.com.fiis.fine.proxy;
 
 /** 配置项 */
-public class FineProxyProp {
+public class ProxyProp {
 	/** 名称 */
 	private String name;
 	/** 拦截路径 */

@@ -18,6 +18,7 @@ import cn.com.fiis.fine.proxy.FineManager;
 import cn.com.fiis.fine.proxy.FineProxy;
 import cn.com.fiis.fine.proxy.ProxyCompiler;
 import cn.com.fiis.fine.proxy.ProxyController;
+import cn.com.fiis.fine.proxy.ProxyProp;
 
 @Configuration
 @ConfigurationProperties(prefix = "fine")
@@ -26,7 +27,7 @@ public class FineProxyInitializer implements ServletContextInitializer {
 
 	private boolean enabledLog = true; // 跟踪日志
 	private boolean enable = false; // 是否启动(默认否)
-	private List<FineProxyProp> proxys; // 代理路径
+	private List<ProxyProp> proxys; // 代理信息
 
 	@Bean
 	@ConditionalOnMissingBean(FineManager.class)
@@ -62,7 +63,7 @@ public class FineProxyInitializer implements ServletContextInitializer {
 			controller.setPrifix(truncatePrifix);
 
 			factory.autowireBean(controller); // 自动注入
-			String beanName = "ProxyController$" + name;
+			String beanName = "FineProxyController$" + name;
 			factory.registerSingleton(beanName, controller); // 注册单例Bean
 			try {
 				FineManager.registerController(beanName); // 注入Controller映射
@@ -88,11 +89,11 @@ public class FineProxyInitializer implements ServletContextInitializer {
 		this.enable = enable;
 	}
 
-	public List<FineProxyProp> getProxys() {
+	public List<ProxyProp> getProxys() {
 		return proxys;
 	}
 
-	public void setProxys(List<FineProxyProp> proxys) {
+	public void setProxys(List<ProxyProp> proxys) {
 		this.proxys = proxys;
 	}
 
