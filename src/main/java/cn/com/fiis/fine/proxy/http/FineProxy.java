@@ -1,10 +1,11 @@
-package cn.com.fiis.fine.proxy;
+package cn.com.fiis.fine.proxy.http;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
@@ -16,12 +17,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.stereotype.Component;
 import org.springframework.util.StreamUtils;
 import org.springframework.web.client.RequestCallback;
 import org.springframework.web.client.ResponseExtractor;
 import org.springframework.web.client.RestTemplate;
 
 /*** 代理 */
+@Component
 public class FineProxy {
 	private static final Logger logger = Logger.getLogger(FineProxy.class.getName());
 
@@ -29,6 +32,7 @@ public class FineProxy {
 	private boolean enabledLog;
 	/** 请求 */
 	private final RestTemplate restTemplate;
+	private final Random random;
 
 	public FineProxy() {
 		this(true);
@@ -37,6 +41,7 @@ public class FineProxy {
 	public FineProxy(boolean enabledLog) {
 		this.enabledLog = enabledLog;
 		this.restTemplate = new RestTemplate();
+		this.random = new Random();
 	}
 
 	/**
@@ -49,7 +54,7 @@ public class FineProxy {
 	 * @return
 	 */
 	public ResponseEntity<?> doProxy(final HttpServletRequest request, final HttpServletResponse response,
-			final String targetBaseUrl, final String prifix) {
+			final String prifix, final List<String> targetBaseUrl) {
 		String redirectUrl = createUrl(request, targetBaseUrl, prifix);
 		try {
 			HttpMethod httpMethod = HttpMethod.resolve(request.getMethod());
@@ -109,9 +114,20 @@ public class FineProxy {
 	}
 
 	/** 创建URL */
-	private String createUrl(HttpServletRequest request, String targetBaseUrl, String prifix) {
-		if (targetBaseUrl == null || targetBaseUrl.isEmpty()) {
-			throw new IllegalArgumentException("Argument[targetBaseUrl] must be not null.");
+	private String createUrl(HttpServletRequest request, List<String> targetBaseUrls, String prifix) {
+		if (targetBaseUrls == null) {
+			throw new IllegalArgumentException("Argument[targetUrl] must be not null.");
+		}
+		targetBaseUrls.removeAll(Collections.singleton(null));
+		targetBaseUrls.removeAll(Collections.singleton(""));
+		if (targetBaseUrls.isEmpty()) {
+			throw new IllegalArgumentException("Argument[targetUrl] must be not empty.");
+		}
+		String targetBaseUrl;
+		if (targetBaseUrls.size() > 1) {
+			targetBaseUrl = targetBaseUrls.get(random.nextInt(targetBaseUrls.size()));
+		} else {
+			targetBaseUrl = targetBaseUrls.get(0);
 		}
 		if (prifix == null) {
 			prifix = "";

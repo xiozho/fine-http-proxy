@@ -1,5 +1,7 @@
 package cn.com.fiis.fine.proxy;
 
+import java.util.List;
+
 /** 配置项 */
 public class ProxyProp {
 	/** 名称 */
@@ -7,7 +9,7 @@ public class ProxyProp {
 	/** 拦截路径 */
 	private String path;
 	/** 目标路径 */
-	private String targetUrl;
+	private List<String> targetUrl;
 	/** 截取前缀 */
 	private String truncatePrifix;
 
@@ -27,11 +29,11 @@ public class ProxyProp {
 		this.path = path;
 	}
 
-	public String getTargetUrl() {
+	public List<String> getTargetUrl() {
 		return targetUrl;
 	}
 
-	public void setTargetUrl(String targetUrl) {
+	public void setTargetUrl(List<String> targetUrl) {
 		this.targetUrl = targetUrl;
 	}
 

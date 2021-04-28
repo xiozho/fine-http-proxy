@@ -13,12 +13,15 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.web.servlet.ServletContextInitializer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.socket.server.standard.ServerEndpointExporter;
 
 import cn.com.fiis.fine.proxy.FineManager;
-import cn.com.fiis.fine.proxy.FineProxy;
 import cn.com.fiis.fine.proxy.ProxyCompiler;
-import cn.com.fiis.fine.proxy.ProxyController;
 import cn.com.fiis.fine.proxy.ProxyProp;
+import cn.com.fiis.fine.proxy.http.FineController;
+import cn.com.fiis.fine.proxy.http.FineProxy;
+import cn.com.fiis.fine.proxy.ws.FineProxyWS;
+import cn.com.fiis.fine.proxy.ws.FineWsServer;
 
 @Configuration
 @ConfigurationProperties(prefix = "fine")
@@ -28,6 +31,7 @@ public class FineProxyInitializer implements ServletContextInitializer {
 	private boolean enabledLog = true; // 跟踪日志
 	private boolean enable = false; // 是否启动(默认否)
 	private List<ProxyProp> proxys; // 代理信息
+	private List<ProxyProp> proxysWs; // WebSocket代理信息
 
 	@Bean
 	@ConditionalOnMissingBean(FineManager.class)
@@ -37,8 +41,16 @@ public class FineProxyInitializer implements ServletContextInitializer {
 
 	@Bean
 	@ConditionalOnMissingBean(FineProxy.class)
-	public FineProxy FineProxy() {
+	public FineProxy fineProxy() {
 		FineProxy fine = new FineProxy();
+		fine.setEnabledLog(enabledLog);
+		return fine;
+	}
+
+	@Bean
+	@ConditionalOnMissingBean(FineProxyWS.class)
+	public FineProxyWS fineProxyWS() {
+		FineProxyWS fine = new FineProxyWS();
 		fine.setEnabledLog(enabledLog);
 		return fine;
 	}
@@ -48,29 +60,51 @@ public class FineProxyInitializer implements ServletContextInitializer {
 
 	@Override
 	public void onStartup(ServletContext servletContext) throws ServletException {
-		if (!enable || proxys == null || proxys.isEmpty()) {
-			// 未启用代理，或代理配置信息空
+		if (!enable) {
+			// 未启用代理
 			return;
 		}
-		proxys.forEach(x -> {
-			String name = x.getName();
-			String path = x.getPath();
-			String targetUrl = x.getTargetUrl();
-			String truncatePrifix = x.getTruncatePrifix();
+		if (proxys != null && !proxys.isEmpty()) {
+			proxys.forEach(x -> {
+				String name = x.getName();
+				String path = x.getPath();
+				List<String> targetUrl = x.getTargetUrl();
+				String truncatePrifix = x.getTruncatePrifix();
+				try {
+					FineController controller = ProxyCompiler.newProxyController(name, path);
+					controller.setTargetBaseUrl(targetUrl);
+					controller.setPrifix(truncatePrifix);
 
-			ProxyController controller = ProxyCompiler.newProxyController(name, path);
-			controller.setTargetBaseUrl(targetUrl);
-			controller.setPrifix(truncatePrifix);
+					factory.autowireBean(controller); // 自动注入
+					String beanName = "FineProxyController$" + name;
+					factory.registerSingleton(beanName, controller); // 注册单例Bean
+					FineManager.registerController(beanName); // 注入Controller映射
+				} catch (Exception e) {
+					logger.fine("" + e);
+				}
+			});
+		}
+		if (proxysWs != null && !proxysWs.isEmpty()) {
+			FineWsServer.setFineProxy(fineProxyWS());
+			proxysWs.forEach(x -> {
+				String name = x.getName();
+				String path = x.getPath();
+				List<String> targetUrl = x.getTargetUrl();
+				try {
+					FineWsServer wsServer = ProxyCompiler.newProxyWS(name, path);
+					wsServer.addTargetUrls(targetUrl);
+					String wsBeanName = "FineWsServer$" + name;
+					factory.registerSingleton(wsBeanName, wsServer); // 注册Bean
+				} catch (Exception e) {
+					logger.fine("" + e);
+				}
+			});
+		}
+	}
 
-			factory.autowireBean(controller); // 自动注入
-			String beanName = "FineProxyController$" + name;
-			factory.registerSingleton(beanName, controller); // 注册单例Bean
-			try {
-				FineManager.registerController(beanName); // 注入Controller映射
-			} catch (Exception e) {
-				logger.warning("" + e);
-			}
-		});
+	@Bean
+	public ServerEndpointExporter serverEndpointExporter() {
+		return new ServerEndpointExporter();
 	}
 
 	public boolean isEnabledLog() {
@@ -95,6 +129,14 @@ public class FineProxyInitializer implements ServletContextInitializer {
 
 	public void setProxys(List<ProxyProp> proxys) {
 		this.proxys = proxys;
+	}
+
+	public List<ProxyProp> getProxysWs() {
+		return proxysWs;
+	}
+
+	public void setProxysWs(List<ProxyProp> proxysWs) {
+		this.proxysWs = proxysWs;
 	}
 
 }
