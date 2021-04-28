@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 import javax.websocket.CloseReason;
+import javax.websocket.EndpointConfig;
 import javax.websocket.OnClose;
 import javax.websocket.OnError;
 import javax.websocket.OnMessage;
@@ -35,10 +36,10 @@ public abstract class FineWsServer {
 	}
 
 	@OnOpen
-	public void onOpen(Session session) {
+	public void onOpen(Session session, EndpointConfig config) {
 		try {
 			List<String> targetBaseUrl = targetBaseUrls.get(getClass());
-			fineProxy.createProxySession(session, targetBaseUrl);
+			fineProxy.createSession(session, targetBaseUrl, config.getUserProperties());
 		} catch (Exception e) {
 			throw new RuntimeException("CreateProxySession Error.", e);
 		}
@@ -47,7 +48,7 @@ public abstract class FineWsServer {
 	/** 客户端关闭 */
 	@OnClose
 	public void onClose(Session session, CloseReason reason) {
-		fineProxy.closeProxySession(session);
+		fineProxy.closeSession(session, reason);
 	}
 
 	/** 错误 */

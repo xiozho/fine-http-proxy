@@ -8,8 +8,10 @@ import javax.servlet.ServletException;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.boot.web.servlet.ServletContextInitializer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,6 +23,7 @@ import cn.com.fiis.fine.proxy.ProxyProp;
 import cn.com.fiis.fine.proxy.http.FineController;
 import cn.com.fiis.fine.proxy.http.FineProxy;
 import cn.com.fiis.fine.proxy.ws.FineProxyWS;
+import cn.com.fiis.fine.proxy.ws.FineWsFilter;
 import cn.com.fiis.fine.proxy.ws.FineWsServer;
 
 @Configuration
@@ -55,6 +58,16 @@ public class FineProxyInitializer implements ServletContextInitializer {
 		return fine;
 	}
 
+	@Bean
+	@ConditionalOnBean(FineProxyWS.class)
+	public FilterRegistrationBean<FineWsFilter> fineWsFilter() {
+		FilterRegistrationBean<FineWsFilter> filter = new FilterRegistrationBean<>();
+		filter.setName("FineWsFilter");
+		filter.setFilter(new FineWsFilter());
+		filter.addUrlPatterns("/*");
+		return filter;
+	}
+
 	@Autowired
 	private DefaultListableBeanFactory factory;
 
@@ -74,7 +87,6 @@ public class FineProxyInitializer implements ServletContextInitializer {
 					FineController controller = ProxyCompiler.newProxyController(name, path);
 					controller.setTargetBaseUrl(targetUrl);
 					controller.setPrifix(truncatePrifix);
-
 					factory.autowireBean(controller); // 自动注入
 					String beanName = "FineProxyController$" + name;
 					factory.registerSingleton(beanName, controller); // 注册单例Bean
