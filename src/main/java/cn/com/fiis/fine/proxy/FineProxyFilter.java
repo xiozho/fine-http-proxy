@@ -1,4 +1,4 @@
-package cn.com.fiis.fine.proxy.ws;
+package cn.com.fiis.fine.proxy;
 
 import java.io.IOException;
 import java.util.logging.Logger;
@@ -13,8 +13,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 /** Websocket过滤器:转发协议 */
-public class FineWsFilter implements Filter {
-	private static final Logger logger = Logger.getLogger(FineWsFilter.class.getName());
+public class FineProxyFilter implements Filter {
+	private static final Logger logger = Logger.getLogger(FineProxyFilter.class.getName());
 
 	@Override
 	public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain)
@@ -23,8 +23,10 @@ public class FineWsFilter implements Filter {
 			HttpServletRequest request = (HttpServletRequest) servletRequest;
 			HttpServletResponse response = (HttpServletResponse) servletResponse;
 			String secWsProtocol = request.getHeader("Sec-WebSocket-Protocol");
-			response.setHeader("Sec-WebSocket-Protocol", secWsProtocol);
-			request.getSession().setAttribute("ip", request.getRemoteHost());
+			if (secWsProtocol != null) {
+				response.setHeader("Sec-WebSocket-Protocol", secWsProtocol);
+				request.getSession().setAttribute("ip", request.getRemoteHost());
+			}
 		} catch (Exception e) {
 			logger.warning("" + e);
 		}

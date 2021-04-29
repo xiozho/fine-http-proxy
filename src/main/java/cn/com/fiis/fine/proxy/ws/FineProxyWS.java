@@ -35,7 +35,7 @@ public class FineProxyWS {
 	/** 服务器端Session */
 	private static final ConcurrentHashMap<String, WebSocketSession> SERVER_SESSION_MAP = new ConcurrentHashMap<>();
 	/** 服务器端处理类 */
-	private static final ConcurrentHashMap<String, ProxyWsHandler> SERVER_HANDLER_MAP = new ConcurrentHashMap<>();
+	private static final ConcurrentHashMap<String, FineProxyWsHandler> SERVER_HANDLER_MAP = new ConcurrentHashMap<>();
 
 	/** 是否记录日志 */
 	private boolean enabledLog;
@@ -55,7 +55,7 @@ public class FineProxyWS {
 				// 定时清理数据
 				SERVER_HANDLER_MAP.entrySet().removeIf(x -> {
 					String sid = x.getKey();
-					ProxyWsHandler handler = x.getValue();
+					FineProxyWsHandler handler = x.getValue();
 					WebSocketSession wss = SERVER_SESSION_MAP.get(sid);
 					if (wss == null || !wss.isOpen()) {
 						// 服务端已下线，通知客户端关闭后移除
@@ -76,7 +76,7 @@ public class FineProxyWS {
 				SERVER_SESSION_MAP.entrySet().removeIf(x -> {
 					String sid = x.getKey();
 					WebSocketSession wss = x.getValue();
-					ProxyWsHandler handler = SERVER_HANDLER_MAP.get(sid);
+					FineProxyWsHandler handler = SERVER_HANDLER_MAP.get(sid);
 					if (handler == null || !handler.isCanuse()) {
 						// 客户端已下线，通知服务端关闭后移除
 						try {
@@ -142,7 +142,7 @@ public class FineProxyWS {
 				}
 			}
 			URI wsUri = new URI(wsUrl);
-			ProxyWsHandler handler = new ProxyWsHandler(session, enabledLog);
+			FineProxyWsHandler handler = new FineProxyWsHandler(session, enabledLog);
 			WebSocketSession se = wsClient.doHandshake(handler, headers, wsUri).get();
 			SERVER_SESSION_MAP.put(session.getId(), se);
 			SERVER_HANDLER_MAP.put(session.getId(), handler);

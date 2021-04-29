@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 
 import cn.com.fiis.fine.proxy.http.FineController;
 import cn.com.fiis.fine.proxy.ws.FineWsServer;
-import cn.com.fiis.fine.proxy.ws.WebSocketConfigurator;
+import cn.com.fiis.fine.proxy.ws.FineProxyWsConfigurator;
 import javassist.ClassClassPath;
 import javassist.ClassPool;
 import javassist.CtClass;
@@ -84,7 +84,7 @@ public final class ProxyCompiler {
 			ClassPool cp = ClassPool.getDefault();
 			cp.insertClassPath(new ClassClassPath(FineWsServer.class));
 			cp.insertClassPath(new ClassClassPath(ServerEndpoint.class));
-			cp.insertClassPath(new ClassClassPath(WebSocketConfigurator.class));
+			cp.insertClassPath(new ClassClassPath(FineProxyWsConfigurator.class));
 			// 创建新类
 			CtClass cc = cp.makeClass(className);
 			ClassFile cf = cc.getClassFile();
@@ -95,7 +95,7 @@ public final class ProxyCompiler {
 			AnnotationsAttribute annAttr = new AnnotationsAttribute(cst, AnnotationsAttribute.visibleTag);
 			Annotation ann = new Annotation(ServerEndpoint.class.getName(), cst);
 			ann.addMemberValue("value", new StringMemberValue(urlPath, cst));
-			ann.addMemberValue("configurator", new ClassMemberValue(WebSocketConfigurator.class.getName(), cst));
+			ann.addMemberValue("configurator", new ClassMemberValue(FineProxyWsConfigurator.class.getName(), cst));
 			annAttr.setAnnotation(ann);
 			cf.addAttribute(annAttr);
 			// 编译成类加载

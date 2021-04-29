@@ -19,12 +19,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.server.standard.ServerEndpointExporter;
 
 import cn.com.fiis.fine.proxy.FineManager;
+import cn.com.fiis.fine.proxy.FineProxyFilter;
 import cn.com.fiis.fine.proxy.ProxyCompiler;
 import cn.com.fiis.fine.proxy.ProxyProp;
 import cn.com.fiis.fine.proxy.http.FineController;
 import cn.com.fiis.fine.proxy.http.FineProxy;
 import cn.com.fiis.fine.proxy.ws.FineProxyWS;
-import cn.com.fiis.fine.proxy.ws.FineWsFilter;
 import cn.com.fiis.fine.proxy.ws.FineWsServer;
 
 @Configuration
@@ -61,10 +61,10 @@ public class FineProxyInitializer implements ServletContextInitializer {
 
 	@Bean
 	@ConditionalOnBean(FineProxyWS.class)
-	public FilterRegistrationBean<FineWsFilter> fineWsFilter() {
-		FilterRegistrationBean<FineWsFilter> filter = new FilterRegistrationBean<>();
-		filter.setName("FineWsFilter");
-		filter.setFilter(new FineWsFilter());
+	public FilterRegistrationBean<FineProxyFilter> fineWsFilter() {
+		FilterRegistrationBean<FineProxyFilter> filter = new FilterRegistrationBean<>();
+		filter.setName("FineProxyFilter");
+		filter.setFilter(new FineProxyFilter());
 		filter.addUrlPatterns("/*");
 		return filter;
 	}

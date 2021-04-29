@@ -18,17 +18,17 @@ import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.AbstractWebSocketHandler;
 
 /** Copies data from the client to the server session. */
-public class ProxyWsHandler extends AbstractWebSocketHandler {
-	private static final Logger logger = Logger.getLogger(ProxyWsHandler.class.getName());
+public class FineProxyWsHandler extends AbstractWebSocketHandler {
+	private static final Logger logger = Logger.getLogger(FineProxyWsHandler.class.getName());
 
 	private boolean enabledLog; // 是否记录日志
 	private final Session session; // 页面请求者Session
 
-	public ProxyWsHandler(Session session) {
+	public FineProxyWsHandler(Session session) {
 		this(session, true);
 	}
 
-	public ProxyWsHandler(Session session, boolean enabledLog) {
+	public FineProxyWsHandler(Session session, boolean enabledLog) {
 		this.session = session;
 		this.enabledLog = enabledLog;
 	}

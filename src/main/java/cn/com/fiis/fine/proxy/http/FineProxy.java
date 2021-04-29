@@ -138,6 +138,16 @@ public class FineProxy {
 		}
 		String queryString = request.getQueryString();
 		if (queryString != null && queryString.length() > 0) {
+			if (queryString.contains("vue=")) {
+				// vue特殊代理问题处理
+				String end = request.getParameterMap().entrySet().parallelStream()
+						.filter(x -> x.getKey() != null && x.getKey().contains(".")).map(x -> x.getKey()).findAny()
+						.orElse(null);
+				if (end != null && queryString.contains(end + "=&")) {
+					// 替换掉特殊参数，并且拼接到最后
+					queryString = queryString.replace(end + "=&", "") + "&" + end;
+				}
+			}
 			queryString = "?" + queryString;
 		} else {
 			queryString = "";

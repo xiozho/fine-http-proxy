@@ -11,7 +11,7 @@ import javax.websocket.server.HandshakeRequest;
 import javax.websocket.server.ServerEndpointConfig;
 
 /** WS配置类 */
-public class WebSocketConfigurator extends ServerEndpointConfig.Configurator {
+public class FineProxyWsConfigurator extends ServerEndpointConfig.Configurator {
 	public static final String ATTR_NAME_HTTP_SESSION_ID = "http.session.id";
 	public static final String ATTR_NAME_HTTP_PARAMETER = "http.parameter";
 	public static final String ATTR_NAME_HTTP_SESSION = "http.session";
