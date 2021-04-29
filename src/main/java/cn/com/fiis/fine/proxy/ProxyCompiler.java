@@ -24,9 +24,17 @@ import javassist.bytecode.annotation.StringMemberValue;
 public final class ProxyCompiler {
 	private static final Logger logger = Logger.getLogger(ProxyCompiler.class.getName());
 
+	public static volatile int NAME_INDEX = 1;
+
 	/** 创建代理Controller */
 	public static FineController newProxyController(final String name, final String path) {
-		String cName = name == null || name.isEmpty() ? "" : name.substring(0, 1).toUpperCase() + name.substring(1);
+		String cName = name == null || name.isEmpty() ? "" : name;
+		cName = cName.replaceAll("[^a-zA-Z0-9]", "");
+		if (cName.length() > 0) {
+			cName = cName.substring(0, 1).toUpperCase() + cName.substring(1);
+		} else {
+			cName = String.format("%04d", NAME_INDEX++);
+		}
 		String urlPath = path == null ? "/" : path;
 		String className = String.format("cn.com.fiis.fine.temp.Temp%sProxyController", cName);
 		try {
@@ -63,7 +71,13 @@ public final class ProxyCompiler {
 
 	/** 创建代理Websocket服务 */
 	public static FineWsServer newProxyWS(final String name, final String path) {
-		String cName = name == null || name.isEmpty() ? "" : name.substring(0, 1).toUpperCase() + name.substring(1);
+		String cName = name == null || name.isEmpty() ? "" : name;
+		cName = cName.replaceAll("[^a-zA-Z0-9]", "");
+		if (cName.length() > 0) {
+			cName = cName.substring(0, 1).toUpperCase() + cName.substring(1);
+		} else {
+			cName = String.format("%04d", NAME_INDEX++);
+		}
 		String urlPath = path == null ? "/" : path;
 		String className = String.format("cn.com.fiis.fine.temp.Temp%sWsServer", cName);
 		try {

@@ -26,16 +26,21 @@ import org.springframework.web.socket.client.standard.StandardWebSocketClient;
 public class FineProxyWS {
 	private static final Logger logger = Logger.getLogger(FineProxyWS.class.getName());
 
-	public static final String HTTP_SESSION_ID_ATTR_NAME = "http.session.id";
-	public static final String HTTP_HEADERS_ATTR_NAME = "http.header";
+	// 参数Key
+	public static final String ATTR_NAME_HTTP_SESSION_ID = "http.session.id";
+	public static final String ATTR_NAME_HTTP_PARAMETER = "http.parameter";
+	public static final String ATTR_NAME_HTTP_SESSION = "http.session";
+	public static final String ATTR_NAME_HTTP_HEADERS = "http.header";
 
 	/** 服务器端Session */
 	private static final ConcurrentHashMap<String, WebSocketSession> SERVER_SESSION_MAP = new ConcurrentHashMap<>();
+	/** 服务器端处理类 */
+	private static final ConcurrentHashMap<String, ProxyWsHandler> SERVER_HANDLER_MAP = new ConcurrentHashMap<>();
 
 	/** 是否记录日志 */
 	private boolean enabledLog;
-	private final StandardWebSocketClient wsClient;
 	private final Random random;
+	private final StandardWebSocketClient wsClient;
 
 	public FineProxyWS() {
 		this(true);
@@ -45,6 +50,57 @@ public class FineProxyWS {
 		this.enabledLog = enabledLog;
 		this.wsClient = new StandardWebSocketClient();
 		this.random = new Random();
+		Thread heartbeatThread = new Thread(() -> {
+			while (!Thread.currentThread().isInterrupted()) {
+				// 定时清理数据
+				SERVER_HANDLER_MAP.entrySet().removeIf(x -> {
+					String sid = x.getKey();
+					ProxyWsHandler handler = x.getValue();
+					WebSocketSession wss = SERVER_SESSION_MAP.get(sid);
+					if (wss == null || !wss.isOpen()) {
+						// 服务端已下线，通知客户端关闭后移除
+						try {
+							handler.afterConnectionClosed(wss, CloseStatus.SERVICE_OVERLOAD);
+							return true;
+						} catch (Exception e) {
+							logger.warning("" + e);
+							return false;
+						}
+					} else if (handler != null && handler.isCanuse()) {
+						// 可用，不移除
+						return false;
+					} else {
+						return true;
+					}
+				});
+				SERVER_SESSION_MAP.entrySet().removeIf(x -> {
+					String sid = x.getKey();
+					WebSocketSession wss = x.getValue();
+					ProxyWsHandler handler = SERVER_HANDLER_MAP.get(sid);
+					if (handler == null || !handler.isCanuse()) {
+						// 客户端已下线，通知服务端关闭后移除
+						try {
+							wss.close(CloseStatus.GOING_AWAY);
+							return true;
+						} catch (Exception e) {
+							logger.warning("" + e);
+							return false;
+						}
+					} else if (wss != null && wss.isOpen()) {
+						// 可用，不移除
+						return false;
+					} else {
+						return true;
+					}
+				});
+				try {
+					Thread.sleep(1111);
+				} catch (InterruptedException e) {
+				}
+			}
+		});
+		heartbeatThread.setDaemon(true);
+		heartbeatThread.start();
 	}
 
 	/** 创建代理Session */
@@ -65,7 +121,7 @@ public class FineProxyWS {
 			wsUrl = urls.get(0);
 		}
 		if (enabledLog) {
-			logger.info("ProxyWSFor-> " + wsUrl);
+			logger.info(String.format("ProxyWS[CONNECT]For(-> %s)", wsUrl));
 		}
 		try {
 			WebSocketHttpHeaders headers = new WebSocketHttpHeaders();
@@ -73,7 +129,7 @@ public class FineProxyWS {
 				try {
 					@SuppressWarnings("unchecked")
 					Map<String, List<String>> httpHeaders = (Map<String, List<String>>) props
-							.get(HTTP_HEADERS_ATTR_NAME);
+							.get(ATTR_NAME_HTTP_HEADERS);
 					if (httpHeaders != null) {
 						httpHeaders.forEach((k, values) -> {
 							values.forEach(x -> {
@@ -82,14 +138,17 @@ public class FineProxyWS {
 						});
 					}
 				} catch (Exception e) {
-					logger.info(String.format("ProxyWSFor-> ( %s) [Header]Error: %s", wsUrl, e));
+					logger.warning(String.format("ProxyWS[CONNECT]For(-> %s)[Header]Error: %s", wsUrl, e));
 				}
 			}
 			URI wsUri = new URI(wsUrl);
-			WebSocketSession se = wsClient.doHandshake(new ProxyWsHandler(session, enabledLog), headers, wsUri).get();
+			ProxyWsHandler handler = new ProxyWsHandler(session, enabledLog);
+			WebSocketSession se = wsClient.doHandshake(handler, headers, wsUri).get();
 			SERVER_SESSION_MAP.put(session.getId(), se);
+			SERVER_HANDLER_MAP.put(session.getId(), handler);
 			return se;
 		} catch (Exception e) {
+			logger.warning(String.format("ProxyWS[CONNECT]For(-> %s)Error: %s", wsUrl, e));
 			throw e;
 		}
 	}
@@ -98,6 +157,10 @@ public class FineProxyWS {
 	public void closeSession(Session session, CloseReason reason) {
 		WebSocketSession se = SERVER_SESSION_MAP.remove(session.getId());
 		if (se != null && se.isOpen()) {
+			if (enabledLog) {
+				String sid = session == null ? "" : session.getId();
+				logger.info(String.format("ProxyWs[CLIENT]CloseFor(%s -> %s)", sid, se.getId()));
+			}
 			try {
 				if (reason != null) {
 					CloseStatus status = new CloseStatus(reason.getCloseCode().getCode(), reason.getReasonPhrase());
@@ -106,7 +169,7 @@ public class FineProxyWS {
 					se.close();
 				}
 			} catch (IOException e) {
-				// nothing
+				logger.warning(String.format("ProxyWs[CLIENT]CloseFor(-> %s)Error: %s", session.getId(), e));
 			}
 		}
 	}
@@ -114,16 +177,19 @@ public class FineProxyWS {
 	/** 发送消息 */
 	public void sendMessage(Session session, String message) throws IOException {
 		WebSocketSession se = SERVER_SESSION_MAP.remove(session.getId());
-		if (enabledLog) {
-			logger.info(String.format("ProxyWs[REC]MsgFor(%s -> %s):%s", session.getId(), se.getId(), message));
-		}
 		if (se != null && se.isOpen()) {
+			if (enabledLog) {
+				logger.info(String.format("ProxyWs[CLIENT]MsgFor(%s -> %s):%s", session.getId(), se.getId(), message));
+			}
 			se.sendMessage(new TextMessage(message));
 		} else {
 			try {
+				if (enabledLog) {
+					logger.info(String.format("ProxyWs[SERVER]CloseFor(-> %s)", session.getId()));
+				}
 				session.close(new CloseReason(CloseReason.CloseCodes.TRY_AGAIN_LATER, null));
 			} catch (Exception e) {
-				logger.info(String.format("ProxyWs[SEND]CloseFor-> %s", session.getId()));
+				logger.warning(String.format("ProxyWs[SERVER]CloseFor(-> %s)Error: %s", session.getId(), e));
 			}
 		}
 	}
@@ -132,7 +198,19 @@ public class FineProxyWS {
 	public void sendMessage(Session session, ByteBuffer message) throws IOException {
 		WebSocketSession se = SERVER_SESSION_MAP.remove(session.getId());
 		if (se != null && se.isOpen()) {
+			if (enabledLog) {
+				logger.info(String.format("ProxyWs[CLIENT]MsgFor(%s -> %s):%s", session.getId(), se.getId(), message));
+			}
 			se.sendMessage(new BinaryMessage(message));
+		} else {
+			try {
+				if (enabledLog) {
+					logger.info(String.format("ProxyWs[SERVER]CloseFor(-> %s)", session.getId()));
+				}
+				session.close(new CloseReason(CloseReason.CloseCodes.TRY_AGAIN_LATER, null));
+			} catch (Exception e) {
+				logger.warning(String.format("ProxyWs[SERVER]CloseFor(-> %s)Error: %s", session.getId(), e));
+			}
 		}
 	}
 

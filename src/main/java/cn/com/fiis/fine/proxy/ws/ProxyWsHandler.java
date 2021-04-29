@@ -21,7 +21,7 @@ import org.springframework.web.socket.handler.AbstractWebSocketHandler;
 public class ProxyWsHandler extends AbstractWebSocketHandler {
 	private static final Logger logger = Logger.getLogger(ProxyWsHandler.class.getName());
 
-	private final boolean enabledLog; // 是否记录日志
+	private boolean enabledLog; // 是否记录日志
 	private final Session session; // 页面请求者Session
 
 	public ProxyWsHandler(Session session) {
@@ -33,14 +33,22 @@ public class ProxyWsHandler extends AbstractWebSocketHandler {
 		this.enabledLog = enabledLog;
 	}
 
+	/** 客户端Session是否可用 */
+	public boolean isCanuse() {
+		return session != null && session.isOpen();
+	}
+
+	public Session getSession() {
+		return session;
+	}
+
 	@Override
 	public void handleMessage(WebSocketSession se, WebSocketMessage<?> message) throws Exception {
-		if (enabledLog) {
-
-			logger.info(String.format("ProxyWs[SEND]MsgFor(%s -> %s):%s", se.getId(), session.getId(),
-					message.getPayload()));
-		}
-		if (session != null && session.isOpen()) {
+		if (isCanuse()) {
+			if (enabledLog) {
+				logger.info(String.format("ProxyWs[SERVER]MsgFor(%s -> %s):%s", se.getId(), session.getId(),
+						message.getPayload()));
+			}
 			RemoteEndpoint.Async sender = session.getAsyncRemote();
 			if (message instanceof TextMessage) {
 				TextMessage m = (TextMessage) message;
@@ -64,9 +72,12 @@ public class ProxyWsHandler extends AbstractWebSocketHandler {
 			}
 		} else {
 			try {
+				if (enabledLog) {
+					logger.info(String.format("ProxyWs[CLIENT]CloseFor(-> %s)", se.getId()));
+				}
 				se.close(CloseStatus.NO_CLOSE_FRAME);
 			} catch (Exception e) {
-				logger.info(String.format("ProxyWs[R]CloseFor-> %s", se.getId()));
+				logger.warning(String.format("ProxyWs[CLIENT]CloseFor(-> %s)Error: %s", se.getId(), e));
 			}
 		}
 	}
@@ -74,7 +85,11 @@ public class ProxyWsHandler extends AbstractWebSocketHandler {
 	@Override
 	public void afterConnectionClosed(WebSocketSession se, CloseStatus status) throws Exception {
 		super.afterConnectionClosed(se, status);
-		if (session != null && session.isOpen()) {
+		if (isCanuse()) {
+			if (enabledLog) {
+				String sid = se == null ? "" : se.getId();
+				logger.info(String.format("ProxyWs[SERVER]CloseFor(%s -> %s)", sid, session.getId()));
+			}
 			if (status != null) {
 				CloseReason reason = new CloseReason(CloseCodes.getCloseCode(status.getCode()), status.getReason());
 				session.close(reason);
@@ -82,6 +97,10 @@ public class ProxyWsHandler extends AbstractWebSocketHandler {
 				session.close();
 			}
 		}
+	}
+
+	public void setEnabledLog(boolean enabledLog) {
+		this.enabledLog = enabledLog;
 	}
 
 }

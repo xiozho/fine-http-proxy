@@ -1,6 +1,7 @@
 package cn.com.fiis.fine;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
 import javax.servlet.ServletContext;
@@ -74,12 +75,15 @@ public class FineProxyInitializer implements ServletContextInitializer {
 	@Override
 	public void onStartup(ServletContext servletContext) throws ServletException {
 		if (!enable) {
-			// 未启用代理
-			return;
+			return;// 未启用代理
 		}
+		AtomicInteger nameIndex = new AtomicInteger(1);
 		if (proxys != null && !proxys.isEmpty()) {
 			proxys.forEach(x -> {
 				String name = x.getName();
+				if (name == null || name.isEmpty()) {
+					name = String.format("%04d", nameIndex.getAndAdd(1));
+				}
 				String path = x.getPath();
 				List<String> targetUrl = x.getTargetUrl();
 				String truncatePrifix = x.getTruncatePrifix();
@@ -91,6 +95,9 @@ public class FineProxyInitializer implements ServletContextInitializer {
 					String beanName = "FineProxyController$" + name;
 					factory.registerSingleton(beanName, controller); // 注册单例Bean
 					FineManager.registerController(beanName); // 注入Controller映射
+					if (enabledLog) {
+						logger.info(String.format("Inject:%s -> %s", beanName, controller.getClass()));
+					}
 				} catch (Exception e) {
 					logger.fine("" + e);
 				}
@@ -100,6 +107,9 @@ public class FineProxyInitializer implements ServletContextInitializer {
 			FineWsServer.setFineProxy(fineProxyWS());
 			proxysWs.forEach(x -> {
 				String name = x.getName();
+				if (name == null || name.isEmpty()) {
+					name = String.format("%04d", nameIndex.getAndAdd(1));
+				}
 				String path = x.getPath();
 				List<String> targetUrl = x.getTargetUrl();
 				try {
@@ -107,6 +117,9 @@ public class FineProxyInitializer implements ServletContextInitializer {
 					wsServer.addTargetUrls(targetUrl);
 					String wsBeanName = "FineWsServer$" + name;
 					factory.registerSingleton(wsBeanName, wsServer); // 注册Bean
+					if (enabledLog) {
+						logger.info(String.format("Inject:%s -> %s", wsBeanName, wsServer.getClass()));
+					}
 				} catch (Exception e) {
 					logger.fine("" + e);
 				}
